@@ -1,7 +1,7 @@
 import { HashRouter, Route, Routes } from "react-router-dom";
 import Home from "./pages/home/Home";
 import Archive from "./pages/archive/Archive";
-import Predict from "./pages/home/predict";
+import Predict from "./pages/home/Predict";
 import ScheduleDetail from "./pages/home/ScheduleDetail";
 import AddSchedule from "./pages/home/AddSchedule";
 import Error from "./pages/Error";

@@ -40,16 +40,25 @@ export default function AddSchedule() {
     e.preventDefault();
     if (!isFormValid) return;
 
+    const existingTasks = JSON.parse(
+      localStorage.getItem("doingTasks") || "[]",
+    );
+
+    // 기존 등록된 것 중 가장 큰 id를 찾고, 없으면 100을 기준으로 잡음
+    const maxId =
+      existingTasks.length > 0
+        ? Math.max(...existingTasks.map((task) => task.id))
+        : 100;
+
+    const nextId = maxId + 1; // 101부터 순서대로 증가
+
     const newTask = {
-      id: Date.now(),
+      id: nextId, // 101, 102, 103 ...
       ...formData,
       title: formData.title.trim(),
       createdAt: new Date().toISOString(),
     };
 
-    const existingTasks = JSON.parse(
-      localStorage.getItem("doingTasks") || "[]",
-    );
     localStorage.setItem(
       "doingTasks",
       JSON.stringify([...existingTasks, newTask]),
@@ -59,7 +68,7 @@ export default function AddSchedule() {
   };
 
   return (
-    <div className="px-[25px] pt-[50px] pb-[40px] bg-background min-h-screen">
+    <div className="px-[20px] pt-[50px] pb-[40px] bg-background min-h-screen">
       <Prev title="일정 등록" />
 
       <form
@@ -68,7 +77,12 @@ export default function AddSchedule() {
       >
         {/*  프로젝트 명 */}
         <div className="space-y-[8px]">
-          <h2>어떤 프로젝트 인가요?</h2>
+          <div className="flex gap-[10px]">
+            <h2>어떤 프로젝트 인가요?</h2>
+            {!formData.title.trim() && (
+              <h4 className="text-primary ">* 필수</h4>
+            )}
+          </div>
           <input
             type="text"
             value={formData.title}
@@ -76,17 +90,15 @@ export default function AddSchedule() {
             placeholder="프로젝트 명을 추가해주세요."
             className="bg-white p-[10px] w-full h-[44px] rounded-[5px] focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-[14px] placeholder:font-normal"
           />
-
-          {!formData.title.trim() && (
-            <p className="text-primary text-[12px] pl-[5px]">
-              프로젝트 명을 입력해주세요.
-            </p>
-          )}
         </div>
 
         {/* 마감일 */}
         <div className="space-y-[8px]">
-          <h2>언제까지 끝내야 하나요?</h2>
+          <div className="flex gap-[10px]">
+            <h2>언제까지 끝내야 하나요?</h2>
+
+            {!formData.deadline && <h4 className="text-primary ">* 필수</h4>}
+          </div>
           <div
             onClick={handleOpenPicker}
             className={`bg-white px-[15px] w-full h-[44px] rounded-[5px] flex items-center justify-between cursor-pointer transition-all ${
@@ -102,12 +114,6 @@ export default function AddSchedule() {
             </h4>
             <Calendar size={18} className="text-dark-gray" />
           </div>
-
-          {!formData.deadline && (
-            <p className="text-primary text-[12px] pl-[5px]">
-              마감일을 선택해주세요.
-            </p>
-          )}
 
           <input
             ref={dateInputRef}
@@ -126,63 +132,117 @@ export default function AddSchedule() {
         <div className="space-y-[15px]">
           <h2>얼마나 걸리나요?</h2>
           <div className="space-y-[10px] px-[10px]">
-            {/* 작업 일수 */}
+            {/* 1. 작업 일수 */}
             <div className="w-full flex justify-between items-center">
               <h3>작업 일수</h3>
               <div className="w-fit flex justify-center gap-[10px] items-center">
                 <button
                   type="button"
-                  disabled={formData.workDays <= 1}
+                  disabled={Number(formData.workDays) <= 1}
                   onClick={() =>
-                    updateField("workDays", Math.max(1, formData.workDays - 1))
+                    updateField(
+                      "workDays",
+                      Math.max(1, Number(formData.workDays || 1) - 1),
+                    )
                   }
-                  className="bg-black disabled:bg-light-gray disabled:cursor-not-allowed w-[24px] h-[24px] rounded-full flex justify-center items-center"
+                  className="bg-black disabled:bg-light-gray disabled:cursor-not-allowed w-[24px] h-[24px] rounded-full flex justify-center items-center cursor-pointer"
                 >
                   <Minus color="white" size={15} />
                 </button>
-                <h4 className="w-[60px] h-[36px] flex justify-center items-center bg-white rounded-[5px]">
-                  {formData.workDays}일
-                </h4>
+
+                <div className="w-[60px] h-[36px] p-[2px] bg-white rounded-[5px] flex items-center justify-center focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent">
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.workDays === 0 ? "" : formData.workDays}
+                    onChange={(e) => {
+                      const val =
+                        e.target.value === "" ? "" : Number(e.target.value);
+                      updateField("workDays", val);
+                    }}
+                    onBlur={() => {
+                      if (!formData.workDays || Number(formData.workDays) < 1) {
+                        updateField("workDays", 1);
+                      }
+                    }}
+                    className="w-[28px] text-right text-[14px] font-medium outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <span className="text-[14px] font-medium pl-[1px] select-none">
+                    일
+                  </span>
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => updateField("workDays", formData.workDays + 1)}
-                  className="bg-black w-[24px] h-[24px] rounded-full flex justify-center items-center"
+                  onClick={() =>
+                    updateField("workDays", Number(formData.workDays || 0) + 1)
+                  }
+                  className="bg-black w-[24px] h-[24px] rounded-full flex justify-center items-center cursor-pointer"
                 >
                   <Plus color="white" size={15} />
                 </button>
               </div>
             </div>
 
-            {/* 하루 작업 시간 */}
+            {/* 2. 하루 작업 시간 */}
             <div className="w-full flex justify-between items-center">
               <h3>하루 작업 시간</h3>
               <div className="w-fit flex justify-center gap-[10px] items-center">
                 <button
                   type="button"
-                  disabled={formData.workHours <= 1}
+                  disabled={Number(formData.workHours) <= 1}
                   onClick={() =>
                     updateField(
                       "workHours",
-                      Math.max(1, formData.workHours - 1),
+                      Math.max(1, Number(formData.workHours || 1) - 1),
                     )
                   }
-                  className="bg-black disabled:bg-light-gray disabled:cursor-not-allowed w-[24px] h-[24px] rounded-full flex justify-center items-center"
+                  className="bg-black disabled:bg-light-gray disabled:cursor-not-allowed w-[24px] h-[24px] rounded-full flex justify-center items-center cursor-pointer"
                 >
                   <Minus color="white" size={15} />
                 </button>
-                <h4 className="w-[60px] h-[36px] flex justify-center items-center bg-white rounded-[5px]">
-                  {formData.workHours}시간
-                </h4>
+
+                <div className="w-[60px] h-[36px] bg-white rounded-[5px] p-[2px] flex items-center justify-center  focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent">
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={formData.workHours === 0 ? "" : formData.workHours}
+                    onChange={(e) => {
+                      const val =
+                        e.target.value === "" ? "" : Number(e.target.value);
+
+                      if (typeof val === "number" && val > 24) {
+                        updateField("workHours", 24);
+                      } else {
+                        updateField("workHours", val);
+                      }
+                    }}
+                    onBlur={() => {
+                      if (
+                        !formData.workHours ||
+                        Number(formData.workHours) < 1
+                      ) {
+                        updateField("workHours", 1);
+                      }
+                    }}
+                    className="w-[25px] text-right text-[14px] font-medium outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <span className="text-[14px] font-medium pl-[1px] select-none">
+                    시간
+                  </span>
+                </div>
+
                 <button
                   type="button"
-                  disabled={formData.workHours >= 20}
+                  disabled={Number(formData.workHours) >= 20}
                   onClick={() =>
                     updateField(
                       "workHours",
-                      Math.min(20, formData.workHours + 1),
+                      Math.min(20, Number(formData.workHours || 0) + 1),
                     )
                   }
-                  className="bg-black disabled:bg-light-gray disabled:cursor-not-allowed w-[24px] h-[24px] rounded-full flex justify-center items-center"
+                  className="bg-black disabled:bg-light-gray disabled:cursor-not-allowed w-[24px] h-[24px] rounded-full flex justify-center items-center cursor-pointer"
                 >
                   <Plus color="white" size={15} />
                 </button>

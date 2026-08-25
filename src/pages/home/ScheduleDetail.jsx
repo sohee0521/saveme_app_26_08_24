@@ -1,8 +1,11 @@
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Prev from "../../components/Prev";
 import { Star, ArrowRight, Minus, Plus } from "lucide-react";
-import { getStatusImage } from "../../utils/statusImage";
+import {
+  calculateTaskStatus,
+  getStatusImage,
+} from "../../utils/statusCalculator";
 
 export default function ScheduleDetail() {
   const { id } = useParams();
@@ -12,21 +15,33 @@ export default function ScheduleDetail() {
     const stored = localStorage.getItem("doingTasks");
     if (stored) {
       const tasks = JSON.parse(stored);
-      const current = tasks.find((t) => t.id === Number(id));
+      const current = tasks.find((t) => String(t.id) === String(id));
       if (current) {
-        setTask(current);
+        const computed = calculateTaskStatus(current);
+        setTask(computed);
+
+        // 콘솔 출력
+        console.group(`📌 [일정 상태 기준 정보] "${computed.title}"`);
+        console.log(`- 남은 일수: ${computed.remainingDays}일`);
+        console.log(
+          `- 오늘 필요 작업시간: ${(computed.dailyRequiredHours * 60).toFixed(1)}분`,
+        );
+        console.log(
+          `- 계획 진척도: ${computed.plannedProgress}% | 현재 진척도: ${computed.progress}%`,
+        );
+        console.log(`- 판정 상태: ${computed.status}`);
+        console.groupEnd();
       }
     }
   }, [id]);
 
-  // 작업량 조절 시 상태 갱신 및 재계산 후 저장
   const handleProgressChange = (taskId, delta) => {
     const stored = localStorage.getItem("doingTasks");
     if (!stored) return;
 
     const tasks = JSON.parse(stored);
     const updatedTasks = tasks.map((t) => {
-      if (t.id === taskId) {
+      if (String(t.id) === String(taskId)) {
         const currentProgress = t.progress || 0;
         const currentToday = t.todayAdded || 0;
 
@@ -46,26 +61,21 @@ export default function ScheduleDetail() {
           Math.max(0, currentProgress + actualDelta),
         );
 
-        // 변경된 진척도에 따른 gap 및 상태 재계정
-        const gap = (t.plannedProgress || 0) - nextTotal;
-        let newStatus = "여유";
-        if (gap <= 0) newStatus = "여유";
-        else if (gap <= 15) newStatus = "긴장";
-        else if (gap <= 30) newStatus = "위기";
-        else newStatus = "파멸";
-
-        return {
+        const updated = {
           ...t,
           todayAdded: nextToday,
           progress: nextTotal,
-          status: newStatus,
         };
+
+        return calculateTaskStatus(updated);
       }
       return t;
     });
 
     localStorage.setItem("doingTasks", JSON.stringify(updatedTasks));
-    const currentUpdated = updatedTasks.find((t) => t.id === taskId);
+    const currentUpdated = updatedTasks.find(
+      (t) => String(t.id) === String(taskId),
+    );
     if (currentUpdated) {
       setTask(currentUpdated);
     }
@@ -82,7 +92,6 @@ export default function ScheduleDetail() {
     );
   }
 
-  // D-Day 계산
   const now = new Date();
   const todayMidnight = new Date(
     now.getFullYear(),
@@ -147,10 +156,14 @@ export default function ScheduleDetail() {
         <div className="space-y-[20px]">
           <div className="w-full flex justify-between items-center">
             <h3>진척도</h3>
-            <button className="px-[8px] py-[4px] border-[1px] border-dark-gray rounded-full flex gap-[5px] items-center">
+            <Link
+              to={`/predict/${task.id}`}
+              state={{ task }}
+              className="px-[8px] py-[4px] border border-dark-gray rounded-full flex gap-[5px] items-center cursor-pointer"
+            >
               <h5>미루기 예측</h5>
               <ArrowRight size={16} strokeWidth={1.58} />
-            </button>
+            </Link>
           </div>
 
           <div className="w-full flex flex-col gap-[20px] justify-center items-center">
@@ -166,14 +179,14 @@ export default function ScheduleDetail() {
               <h3>{task.status || "여유"}</h3>
             </div>
 
-            <div className="space-y-[10px] w-full max-w-[280px]">
-              {/* 계획 게이지 (Home에서 계산되어 저장된 plannedProgress 사용) */}
+            <div className="space-y-[5px] w-full max-w-[280px]">
+              {/* 계획 게이지 */}
               <div className="flex justify-between items-center">
                 <h4 className="text-dark-gray">계획</h4>
                 <div className="flex gap-[10px] items-center">
                   <div className="h-[12px] w-[180px] bg-light-gray rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-primary transition-all duration-300"
+                      className="h-full bg-dark-gray transition-all duration-300"
                       style={{ width: `${task.plannedProgress || 0}%` }}
                     />
                   </div>
@@ -239,7 +252,7 @@ export default function ScheduleDetail() {
 
       <button
         type="button"
-        className="w-full bg-primary disabled:bg-light-gray disabled:text-dark-gray disabled:cursor-not-allowed text-white py-[14px] rounded-[5px] transition-all cursor-pointer mt-[10px]"
+        className="w-full bg-primary disabled:bg-light-gray disabled:text-dark-gray disabled:cursor-not-allowed text-white py-[12px] rounded-[5px] transition-all cursor-pointer"
       >
         <h3>내가해냄</h3>
       </button>

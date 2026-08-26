@@ -1,12 +1,17 @@
-import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Prev from "../../components/Prev";
 import { Calendar, Minus, Plus, Star } from "lucide-react";
+import { calculateTaskStatus } from "../../utils/statusCalculator";
 
 export default function AddSchedule() {
   const navigate = useNavigate();
+  const { id } = useParams(); // 수정 모드일 때 id 존재
+  const location = useLocation();
   const dateInputRef = useRef(null);
   const [isFocused, setIsFocused] = useState(false);
+
+  const isEditMode = Boolean(id);
 
   // 폼 입력 상태
   const [formData, setFormData] = useState({
@@ -16,6 +21,26 @@ export default function AddSchedule() {
     workHours: 1,
     priority: "보통",
   });
+
+  // 수정 모드 진입 시 기존 데이터 채우기
+  useEffect(() => {
+    if (isEditMode) {
+      const stored = localStorage.getItem("doingTasks");
+      if (stored) {
+        const tasks = JSON.parse(stored);
+        const current = tasks.find((t) => String(t.id) === String(id));
+        if (current) {
+          setFormData({
+            title: current.title || "",
+            deadline: current.deadline || "",
+            workDays: current.workDays || 1,
+            workHours: current.workHours || 1,
+            priority: current.priority || "보통",
+          });
+        }
+      }
+    }
+  }, [id, isEditMode]);
 
   const updateField = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -35,7 +60,7 @@ export default function AddSchedule() {
     formData.workDays >= 1 &&
     formData.workHours >= 1;
 
-  // 로컬스토리지 저장 처리
+  // 로컬스토리지 저장/수정 처리
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!isFormValid) return;
@@ -44,44 +69,64 @@ export default function AddSchedule() {
       localStorage.getItem("doingTasks") || "[]",
     );
 
-    // 기존 등록된 것 중 가장 큰 id를 찾고, 없으면 100을 기준으로 잡음
-    const maxId =
-      existingTasks.length > 0
-        ? Math.max(...existingTasks.map((task) => task.id))
-        : 100;
+    if (isEditMode) {
+      // 🌟 [수정 모드] 기존 id 대상 업데이트 및 상태 재계산
+      const updatedTasks = existingTasks.map((task) => {
+        if (String(task.id) === String(id)) {
+          const updated = {
+            ...task,
+            ...formData,
+            title: formData.title.trim(),
+            totalHours: Number(formData.workDays) * Number(formData.workHours),
+          };
+          return calculateTaskStatus(updated);
+        }
+        return task;
+      });
 
-    const nextId = maxId + 1; // 101부터 순서대로 증가
+      localStorage.setItem("doingTasks", JSON.stringify(updatedTasks));
+      navigate(`/schedule/${id}`);
+    } else {
+      // 🌟 [등록 모드] 새 id 부여 후 추가
+      const maxId =
+        existingTasks.length > 0
+          ? Math.max(...existingTasks.map((task) => Number(task.id) || 0))
+          : 100;
 
-    const newTask = {
-      id: nextId, // 101, 102, 103 ...
-      ...formData,
-      title: formData.title.trim(),
-      createdAt: new Date().toISOString(),
-    };
+      const nextId = maxId + 1;
 
-    localStorage.setItem(
-      "doingTasks",
-      JSON.stringify([...existingTasks, newTask]),
-    );
+      const newTask = {
+        id: nextId,
+        ...formData,
+        title: formData.title.trim(),
+        totalHours: Number(formData.workDays) * Number(formData.workHours),
+        progress: 0,
+        todayAdded: 0,
+        createdAt: new Date().toISOString(),
+      };
 
-    navigate("/");
+      const calculatedTask = calculateTaskStatus(newTask);
+      localStorage.setItem(
+        "doingTasks",
+        JSON.stringify([...existingTasks, calculatedTask]),
+      );
+      navigate("/");
+    }
   };
 
   return (
     <div className="px-[20px] pt-[50px] pb-[40px] bg-background min-h-screen">
-      <Prev title="일정 등록" />
+      <Prev title={isEditMode ? "일정 수정" : "일정 등록"} />
 
       <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-[30px] mt-[30px]"
       >
-        {/*  프로젝트 명 */}
+        {/* 프로젝트 명 */}
         <div className="space-y-[8px]">
-          <div className="flex gap-[10px]">
+          <div className="flex gap-[5px]">
             <h2>어떤 프로젝트 인가요?</h2>
-            {!formData.title.trim() && (
-              <h4 className="text-primary ">* 필수</h4>
-            )}
+            {!formData.title.trim() && <h2 className="text-important">* </h2>}
           </div>
           <input
             type="text"
@@ -94,10 +139,9 @@ export default function AddSchedule() {
 
         {/* 마감일 */}
         <div className="space-y-[8px]">
-          <div className="flex gap-[10px]">
+          <div className="flex gap-[5px]">
             <h2>언제까지 끝내야 하나요?</h2>
-
-            {!formData.deadline && <h4 className="text-primary ">* 필수</h4>}
+            {!formData.deadline && <h2 className="text-important">* </h2>}
           </div>
           <div
             onClick={handleOpenPicker}
@@ -128,13 +172,13 @@ export default function AddSchedule() {
           />
         </div>
 
-        {/*  작업 시간 */}
+        {/* 작업 시간 */}
         <div className="space-y-[15px]">
           <h2>얼마나 걸리나요?</h2>
           <div className="space-y-[10px] px-[10px]">
             {/* 1. 작업 일수 */}
             <div className="w-full flex justify-between items-center">
-              <h3>작업 일수</h3>
+              <h3 className="text-black/60">작업 일수</h3>
               <div className="w-fit flex justify-center gap-[10px] items-center">
                 <button
                   type="button"
@@ -145,7 +189,7 @@ export default function AddSchedule() {
                       Math.max(1, Number(formData.workDays || 1) - 1),
                     )
                   }
-                  className="bg-black disabled:bg-light-gray disabled:cursor-not-allowed w-[24px] h-[24px] rounded-full flex justify-center items-center cursor-pointer"
+                  className="bg-primary disabled:bg-light-gray disabled:cursor-not-allowed w-[24px] h-[24px] rounded-full flex justify-center items-center cursor-pointer"
                 >
                   <Minus color="white" size={15} />
                 </button>
@@ -177,7 +221,7 @@ export default function AddSchedule() {
                   onClick={() =>
                     updateField("workDays", Number(formData.workDays || 0) + 1)
                   }
-                  className="bg-black w-[24px] h-[24px] rounded-full flex justify-center items-center cursor-pointer"
+                  className="bg-primary w-[24px] h-[24px] rounded-full flex justify-center items-center cursor-pointer"
                 >
                   <Plus color="white" size={15} />
                 </button>
@@ -186,7 +230,7 @@ export default function AddSchedule() {
 
             {/* 2. 하루 작업 시간 */}
             <div className="w-full flex justify-between items-center">
-              <h3>하루 작업 시간</h3>
+              <h3 className="text-black/60">하루 작업 시간</h3>
               <div className="w-fit flex justify-center gap-[10px] items-center">
                 <button
                   type="button"
@@ -197,16 +241,16 @@ export default function AddSchedule() {
                       Math.max(1, Number(formData.workHours || 1) - 1),
                     )
                   }
-                  className="bg-black disabled:bg-light-gray disabled:cursor-not-allowed w-[24px] h-[24px] rounded-full flex justify-center items-center cursor-pointer"
+                  className="bg-primary disabled:bg-light-gray disabled:cursor-not-allowed w-[24px] h-[24px] rounded-full flex justify-center items-center cursor-pointer"
                 >
                   <Minus color="white" size={15} />
                 </button>
 
-                <div className="w-[60px] h-[36px] bg-white rounded-[5px] p-[2px] flex items-center justify-center  focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent">
+                <div className="w-[60px] h-[36px] bg-white rounded-[5px] p-[2px] flex items-center justify-center focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent">
                   <input
                     type="number"
                     min="1"
-                    max="20"
+                    max="24"
                     value={formData.workHours === 0 ? "" : formData.workHours}
                     onChange={(e) => {
                       const val =
@@ -242,7 +286,7 @@ export default function AddSchedule() {
                       Math.min(20, Number(formData.workHours || 0) + 1),
                     )
                   }
-                  className="bg-black disabled:bg-light-gray disabled:cursor-not-allowed w-[24px] h-[24px] rounded-full flex justify-center items-center cursor-pointer"
+                  className="bg-primary disabled:bg-light-gray disabled:cursor-not-allowed w-[24px] h-[24px] rounded-full flex justify-center items-center cursor-pointer"
                 >
                   <Plus color="white" size={15} />
                 </button>
@@ -251,7 +295,7 @@ export default function AddSchedule() {
           </div>
         </div>
 
-        {/*중요도 */}
+        {/* 중요도 */}
         <div className="space-y-[15px]">
           <h2>얼마나 중요한가요?</h2>
           <div className="flex justify-center items-center gap-[20px]">
@@ -260,7 +304,7 @@ export default function AddSchedule() {
                 key={item}
                 type="button"
                 onClick={() => updateField("priority", item)}
-                className={`flex justify-center items-center gap-[5px] px-[12px] py-[8px] rounded-full transition-colors ${
+                className={`flex justify-center items-center gap-[5px] px-[12px] py-[8px] rounded-full transition-colors cursor-pointer ${
                   formData.priority === item
                     ? "bg-secondary text-black"
                     : "bg-light-gray text-dark-gray"
@@ -277,13 +321,13 @@ export default function AddSchedule() {
           </div>
         </div>
 
-        {/* 저장 버튼 */}
+        {/* 저장/수정 버튼 */}
         <button
           type="submit"
           disabled={!isFormValid}
           className="bg-primary disabled:bg-light-gray disabled:text-dark-gray disabled:cursor-not-allowed text-white py-[14px] rounded-[5px] transition-all cursor-pointer mt-[10px]"
         >
-          <h3>저장하기</h3>
+          <h3>{isEditMode ? "수정하기" : "저장하기"}</h3>
         </button>
       </form>
     </div>

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Plus, Check, ListFilter, Clock8, Star, Minus } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   calculateTaskStatus,
   getStatusImage,
@@ -9,6 +9,8 @@ import {
 export default function Home() {
   const [tasks, setTasks] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
+  // 정렬 상태: "마감 임박순" | "중요도순" | "위험도순"
+  const [sortType, setSortType] = useState("마감 임박순");
 
   const getTodayString = () => {
     return new Date().toISOString().split("T")[0];
@@ -92,19 +94,59 @@ export default function Home() {
     return 1;
   };
 
+  const getStatusScore = (status) => {
+    switch (status) {
+      case "파멸":
+        return 4;
+      case "위기":
+        return 3;
+      case "긴장":
+        return 2;
+      case "여유":
+      default:
+        return 1;
+    }
+  };
+
   const handleSelect = (option) => {
+    setSortType(option);
     setIsOpen(false);
+  };
+
+  // 선택된 정렬 방식에 맞춰 정렬된 task 배열 반환
+  const sortedTasks = useMemo(() => {
+    return [...tasks].sort((a, b) => {
+      if (sortType === "마감 임박순") {
+        const timeA = new Date(a.deadline || "9999-12-31").getTime();
+        const timeB = new Date(b.deadline || "9999-12-31").getTime();
+        return timeA - timeB;
+      }
+      if (sortType === "중요도순") {
+        return getStarCount(b.priority) - getStarCount(a.priority);
+      }
+      if (sortType === "위험도순") {
+        return getStatusScore(b.status) - getStatusScore(a.status);
+      }
+      return 0;
+    });
+  }, [tasks, sortType]);
+
+  // 상태에 따른 카드 연한 배경색 결정 함수
+  const getCardBgClass = (status) => {
+    if (status === "위기") return "bg-warning/20";
+    if (status === "파멸") return "bg-important/20";
+    return "bg-white";
   };
 
   return (
     <div className="w-full h-screen flex flex-col overflow-hidden bg-background">
       {/* 1. 상단 블랙 헤더 (고정) */}
-      <div className="w-full bg-black shrink-0 flex flex-col px-[20px] pt-[70px] pb-[20px] gap-[10px]">
+      <div className="w-full bg-black shrink-0 flex flex-col px-[20px] pt-[100px] pb-[20px] gap-[10px]">
         <div className="flex flex-col gap-[5px]">
           <h1 className="text-secondary">SAVE ME</h1>
           <h4 className="text-white">내일의 나를 구하는 가장 빠른 걸음</h4>
         </div>
-        <Link to="/add-schedule">
+        <Link to="/add-schedule" className="w-fit">
           <div className="w-fit flex items-center gap-[5px] px-[10px] py-[5px] rounded-[5px] border-[1px] border-white">
             <Plus size={20} color="white" />
             <button className="text-white">
@@ -143,37 +185,34 @@ export default function Home() {
             }`}
           >
             <div className="bg-white w-[120px] rounded-[5px] shadow-xl flex flex-col border border-light-gray overflow-hidden">
-              <button
-                type="button"
-                onClick={() => handleSelect("마감 임박순")}
-                className="w-full text-left p-[10px] text-black hover:bg-light-gray transition-colors"
-              >
-                <h4>마감 임박순</h4>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSelect("중요도순")}
-                className="w-full text-left p-[10px] text-black hover:bg-light-gray transition-colors"
-              >
-                <h4>중요도순</h4>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSelect("위험도순")}
-                className="w-full text-left p-[10px] text-black hover:bg-light-gray transition-colors"
-              >
-                <h4>위험도순</h4>
-              </button>
+              {["마감 임박순", "중요도순", "위험도순"].map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => handleSelect(option)}
+                  className={`w-full text-left p-[10px] hover:bg-light-gray transition-colors cursor-pointer ${
+                    sortType === option
+                      ? "text-primary font-bold bg-secondary/20"
+                      : "text-black"
+                  }`}
+                >
+                  <h4>{option}</h4>
+                </button>
+              ))}
             </div>
           </div>
         </div>
       </div>
 
-      {/* 3. 할 일 카드 목록 영역 (단독 스크롤) */}
-      <div className="flex-1 px-[20px] pb-[40px] flex flex-col gap-[10px] overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-        {tasks.map((task) => (
+      {/* 3. 할 일 카드 목록 영역 */}
+      <div className="flex-1 px-[20px] pb-[100px] flex flex-col gap-[10px] overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+        {sortedTasks.map((task) => (
           <Link to={`/schedule/${task.id}`} key={task.id}>
-            <div className="bg-white p-[15px] rounded-[10px] space-y-[15px]">
+            <div
+              className={`p-[15px] rounded-[10px] space-y-[15px] transition-colors duration-300 ${getCardBgClass(
+                task.status,
+              )}`}
+            >
               <div className="flex items-center gap-[10px]">
                 <div className="flex justify-center items-center gap-[5px]">
                   <Clock8 size={15} color="#757575" />
@@ -230,7 +269,7 @@ export default function Home() {
                   >
                     <Minus color="white" size={15} />
                   </button>
-                  <h4 className="w-[40px] h-[24px] flex justify-center items-center bg-white rounded-[5px] text-center">
+                  <h4 className="w-[40px] h-[24px] flex justify-center items-center bg-transparent rounded-[5px] text-center">
                     {task.todayAdded || 0}%
                   </h4>
                   <button

@@ -17,6 +17,7 @@ export default function Router() {
           <Route path="/predict/:id" element={<Predict />}></Route>
           <Route path="/schedule/:id" element={<ScheduleDetail />}></Route>
           <Route path="/add-schedule" element={<AddSchedule />}></Route>
+          <Route path="/edit-schedule/:id" element={<AddSchedule />} />
 
           <Route path="/*" element={<Error />}></Route>
         </Routes>

@@ -8,7 +8,6 @@ import {
 } from "../../utils/statusCalculator";
 import PageTitle from "../../components/PageTitle";
 
-// --- 헬퍼 함수 및 상수 (컴포넌트 외부 분리) ---
 const SORT_OPTIONS = ["마감 임박순", "중요도순", "위험도순"];
 
 const STATUS_SCORE_MAP = {
@@ -53,7 +52,7 @@ export default function Home() {
   const [tasks, setTasks] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [sortType, setSortType] = useState("마감 임박순");
-  const [isLoading, setIsLoading] = useState(true); // 🌟 로딩 상태 추가 (초기값 true)
+  const [isLoading, setIsLoading] = useState(true);
 
   // 1. 초기 데이터 불러오기 및 날짜 갱신
   useEffect(() => {
@@ -74,13 +73,13 @@ export default function Home() {
         setTasks(parsed);
         localStorage.setItem("doingTasks", JSON.stringify(parsed));
       }
-      setIsLoading(false); // 🌟 로딩 완료
-    }, 400); // 0.4초간 자연스러운 로딩 후 렌더링
+      setIsLoading(false);
+    }, 400); //
 
     return () => clearTimeout(timer);
   }, []);
 
-  // 2. 하루 작업량(진행률) 변경 (+5%, -5%)
+  // 2. 하루 작업량 변경 (+5%, -5%)
   const handleProgressChange = (id, delta) => {
     const today = getTodayString();
 
@@ -90,7 +89,7 @@ export default function Home() {
       const currentProgress = task.progress || 0;
       const currentToday = task.todayAdded || 0;
 
-      // 증가 시 100% 초과 방지, 감소 시 0% 미만 및 오늘 추가분 초과 감소 방지
+      // 증가 시 100% 초과 방지, 감소 시 0% 미만
       let nextProgress = currentProgress + delta;
       let nextToday = currentToday + delta;
 
@@ -142,7 +141,6 @@ export default function Home() {
     });
   }, [tasks, sortType]);
 
-  // 🌟 로딩 중일 때 로딩 화면 렌더링
   if (isLoading) {
     return <Loading />;
   }

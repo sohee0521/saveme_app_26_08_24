@@ -85,7 +85,7 @@ export default function ScheduleDetail() {
           setTask(calculateTaskStatus(current));
         }
       }
-      setIsLoading(false); // 🌟 로딩 완료
+      setIsLoading(false);
     }, 400);
 
     return () => clearTimeout(timer);
@@ -151,10 +151,10 @@ export default function ScheduleDetail() {
   };
 
   // 4. 완료 처리
+  // ScheduleDetail.jsx 의 handleSaveCompletion 함수 수정
   const handleSaveCompletion = () => {
     if (!task) return;
 
-    // doingTasks에서 제거
     const doingStored = localStorage.getItem("doingTasks");
     if (doingStored) {
       const doingTasks = JSON.parse(doingStored);
@@ -164,13 +164,14 @@ export default function ScheduleDetail() {
       localStorage.setItem("doingTasks", JSON.stringify(filtered));
     }
 
-    // doneTasks에 추가
     const doneStored = localStorage.getItem("doneTasks");
     const doneTasks = doneStored ? JSON.parse(doneStored) : [];
+
     const completedTask = {
       ...task,
       progress: 100,
       completedAt: new Date().toISOString(),
+      style: selectedReview,
       completionReview: selectedReview,
     };
 
@@ -179,10 +180,9 @@ export default function ScheduleDetail() {
       JSON.stringify([completedTask, ...doneTasks]),
     );
     setIsCompleteModalOpen(false);
-    navigate("/");
+    navigate("/archive"); // 또는 navigate("/")
   };
 
-  // 🌟 로딩 중일 때 로딩 화면 렌더링
   if (isLoading) {
     return <Loading />;
   }

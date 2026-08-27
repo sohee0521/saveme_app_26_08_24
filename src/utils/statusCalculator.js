@@ -3,9 +3,6 @@ import vector2 from "../img/vector2.svg"; // 2단계: 긴장
 import vector3 from "../img/vector3.svg"; // 3단계: 위기
 import vector4 from "../img/vector4.svg"; // 4단계: 파멸
 
-// ==========================================
-// 1. 상수 정의 (Constants)
-// ==========================================
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const DEFAULT_TOTAL_HOURS = 10;
 
@@ -23,9 +20,8 @@ export const STATUS_MESSAGES = {
   파멸: "24시간 잠과 영혼을 갈아넣어도 모자라요",
 };
 
-// ==========================================
-// 2. 내부 헬퍼 함수 (Helpers)
-// ==========================================
+// 2. 내부 헬퍼 함수 (날짜 간 일수 차이 계산 시 발생하는 '시/분/초 오차'를 제거하는 보정)
+
 /** 자정 기준 Date 객체 반환 */
 const getMidnightDate = (date = new Date()) => {
   const d = new Date(date);
@@ -33,14 +29,12 @@ const getMidnightDate = (date = new Date()) => {
   return d;
 };
 
-/** 두 날짜 사이의 일수 차이 계산 */
 const getDiffDays = (targetDate, baseDate) => {
   return Math.ceil((targetDate.getTime() - baseDate.getTime()) / MS_PER_DAY);
 };
 
-// ==========================================
-// 3. Export 함수 (API)
-// ==========================================
+// 3. 이미지 경로와 피트백 멘트 반환
+
 export const getStatusImage = (status) => STATUS_IMAGES[status] || vector1;
 export const getStatusMessage = (status) =>
   STATUS_MESSAGES[status] || STATUS_MESSAGES["여유"];
@@ -55,7 +49,7 @@ export const getStatusInfo = (status) => {
 };
 
 /**
- * [단일 계산 함수] 지연 일수 및 하루 필요 작업시간 결합 4단계 순차 상태 판별
+ * 계산된 모든 진척/위험도 데이터를 통합 반환
  * @param {Object} task - 할 일 객체
  * @param {number} postponedDays - 미루기 시뮬레이션 일수 (기본값 0)
  */
@@ -134,8 +128,8 @@ export const calculateTaskStatus = (task, postponedDays = 0) => {
 };
 
 /**
- * 시/분 표시용 문자열 포맷팅
- * @param {number} hoursDecimal - 소수점 형태의 시간 (예: 1.5 -> 1시간 30분, 0.2 -> 12분)
+ * 소수점 시간을 시/분 단위로 가공
+ * @param {number} hoursDecimal - 소수점 형태의 시간
  */
 export const formatWorkTime = (hoursDecimal) => {
   if (hoursDecimal <= 0) return "0분";

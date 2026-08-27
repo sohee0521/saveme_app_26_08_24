@@ -8,7 +8,7 @@ import PageTitle from "../../components/PageTitle"; // 🌟 페이지 타이틀 
 
 const PRIORITY_LIST = ["보통", "중요", "최우선"];
 
-// --- 숫자 입력 및 증감 조절기 컴포넌트 ---
+// --- 숫자 입력 및 증감 조절 컴포넌트 ---
 function NumberStepper({ label, value, unit, min = 1, max = 99, onChange }) {
   const numValue = Number(value) || 0;
 
@@ -218,12 +218,10 @@ export default function AddSchedule() {
             <h2>언제까지 끝내야 하나요?</h2>
             {!formData.deadline && <h2 className="text-important">*</h2>}
           </div>
-          <div
-            onClick={handleOpenPicker}
-            className={`bg-white px-[15px] w-full h-[44px] rounded-[5px] flex items-center justify-between cursor-pointer transition-all ${
-              isFocused ? "ring-2 ring-primary" : ""
-            }`}
-          >
+
+          {/* relative 컨테이너 + focus-within으로 포커스 시 테두리 강조 */}
+          <div className="relative bg-white px-[15px] w-full h-[44px] rounded-[5px] flex items-center justify-between cursor-pointer transition-all border border-light-gray/40 focus-within:ring-2 focus-within:ring-primary">
+            {/* 1. 시각적 텍스트 (화면에 보이는 텍스트) */}
             <h4
               className={
                 formData.deadline ? "text-black font-medium" : "text-dark-gray"
@@ -231,20 +229,21 @@ export default function AddSchedule() {
             >
               {formData.deadline || "마감일을 선택해주세요"}
             </h4>
-            <Calendar size={18} className="text-dark-gray" />
-          </div>
 
-          <input
-            ref={dateInputRef}
-            type="date"
-            value={formData.deadline}
-            onChange={(e) => {
-              updateField("deadline", e.target.value);
-              setIsFocused(false);
-            }}
-            onBlur={() => setIsFocused(false)}
-            className="sr-only"
-          />
+            {/* 2. 시각적 달력 아이콘 */}
+            <Calendar
+              size={18}
+              className="text-dark-gray pointer-events-none"
+            />
+
+            {/* 3. 투명 오버레이 date input (모바일 터치 100% 인식) */}
+            <input
+              type="date"
+              value={formData.deadline || ""}
+              onChange={(e) => updateField("deadline", e.target.value)}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+            />
+          </div>
         </div>
 
         {/* 3. 작업 시간 (작업 일수 + 하루 작업 시간) */}

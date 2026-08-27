@@ -10,7 +10,7 @@ import {
 } from "../../utils/statusCalculator";
 import PageTitle from "../../components/PageTitle";
 
-// --- 상태별 메시지 및 스타일 맵핑 (컴포넌트 외부 분리) ---
+// --- 상태별 메시지 및 스타일 맵핑  ---
 const SOS_MESSAGE_MAP = {
   여유: "계획대로 사는 사람의 품격이란 이런 것",
   긴장: "'내일의 내가 하겠지'의 '내일'이 바로 오늘입니다",
@@ -45,7 +45,7 @@ function ProgressBar({ label, value, barColor }) {
 export default function Predict() {
   const { id } = useParams();
   const [task, setTask] = useState(null);
-  const [isLoading, setIsLoading] = useState(true); // 🌟 로딩 상태 추가
+  const [isLoading, setIsLoading] = useState(true);
   const [postponedDays, setPostponedDays] = useState(0);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
@@ -60,7 +60,7 @@ export default function Predict() {
         const current = tasks.find((t) => String(t.id) === String(id));
         if (current) setTask(current);
       }
-      setIsLoading(false); // 🌟 로딩 완료
+      setIsLoading(false);
     }, 400);
 
     return () => clearTimeout(timer);
@@ -70,7 +70,7 @@ export default function Predict() {
   const computed = task ? calculateTaskStatus(task, postponedDays) : null;
   const isDeadlock = computed ? computed.remainingDays === 0 : false;
 
-  // 3. 0일 도달 시 암전 타이머 (2초 후 모달 표시)
+  // 3. 0일 도달 시 암전 타이머 (2초 후 모달 )
   useEffect(() => {
     if (!isDeadlock) {
       setShowDeadlockModal(false);
@@ -81,12 +81,10 @@ export default function Predict() {
     return () => clearTimeout(timer);
   }, [isDeadlock]);
 
-  // 🌟 로딩 중일 때 로딩 화면 렌더링
   if (isLoading) {
     return <Loading />;
   }
 
-  // 데이터 로딩 실패 처리
   if (!task || !computed) {
     return (
       <div className="px-[20px] pt-[50px] pb-[40px] bg-background min-h-screen">
@@ -162,7 +160,7 @@ export default function Predict() {
         }`}
       />
 
-      {/* 데드락 암전 오버레이 */}
+      {/* 암전 오버레이 */}
       <div
         className={`absolute inset-0 z-45 bg-black pointer-events-none transition-opacity duration-[2000ms] ease-in-out ${
           isDeadlock ? "opacity-90" : "opacity-0"

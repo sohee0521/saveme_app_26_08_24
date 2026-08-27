@@ -20,7 +20,7 @@ const STYLE_COMMENT_MAP = {
 
 const FILTER_TABS = ["전체", "계획대로", "빠듯하게", "극적으로"];
 
-// 1. 일반 데이터용 중심 좌표 설정
+// 1. 세가지 원 중심 좌표 설정
 const BUBBLE_CONFIGS = [
   {
     center: { x: 105, y: 74 },
@@ -63,7 +63,7 @@ const BUBBLE_CONFIGS = [
 // 🌟 2. 0%일 때 적당히 맞물리도록 간격을 살짝 벌린 중심 좌표 설정
 const EMPTY_BUBBLE_CONFIGS = [
   {
-    center: { x: 105, y: 80 }, // 상단 원 살짝 위로 (88 -> 80)
+    center: { x: 105, y: 80 }, // 상단 원
     bgColor: "bg-primary",
     textColor: "text-white",
     zIndex: "z-30",
@@ -75,7 +75,7 @@ const EMPTY_BUBBLE_CONFIGS = [
     }),
   },
   {
-    center: { x: 82, y: 128 }, // 좌하단 원 살짝 바깥쪽 아래로 (88, 122 -> 82, 128)
+    center: { x: 82, y: 128 }, // 좌하단 원
     bgColor: "bg-secondary/40",
     textColor: "text-primary",
     zIndex: "z-20",
@@ -87,7 +87,7 @@ const EMPTY_BUBBLE_CONFIGS = [
     }),
   },
   {
-    center: { x: 128, y: 128 }, // 우하단 원 살짝 바깥쪽 아래로 (122, 122 -> 128, 128)
+    center: { x: 128, y: 128 }, // 우하단 원
     bgColor: "bg-[#EAEAEA]",
     textColor: "text-dark-gray",
     zIndex: "z-10",
@@ -120,10 +120,14 @@ export default function Archive() {
   }, []);
 
   const resolveStyle = (task) => {
-    const val = task.style || task.status;
-    if (val === "빠듯하게" || val === "긴장") return "빠듯하게";
-    if (val === "극적으로" || val === "위기" || val === "파멸")
+    const val = task.completionReview || task.style || task.status;
+
+    if (val === "빠듯하게" || val === "빠듯했지만" || val === "긴장") {
+      return "빠듯하게";
+    }
+    if (val === "극적으로" || val === "위기" || val === "파멸") {
       return "극적으로";
+    }
     return "계획대로";
   };
 

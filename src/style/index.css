@@ -51,11 +51,10 @@ body {
 }
 
 /* 기본 폰트 설정 */
-/* 쉼표로 묶어두면, 실제 <h> 태그를 쓸 때도 적용 */
 
 h1,
 .h1 {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 700;
   font-variation-settings: "wdth" 100;
 }

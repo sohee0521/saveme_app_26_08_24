@@ -34,7 +34,8 @@
 
 ### 2. 미루기 예측
 
-<img width="337" height="633" alt="Image" src="https://github.com/user-attachments/assets/ccc28478-f9ca-417d-9ea4-a5053a75e791" />
+<img width="334" height="633" alt="Image" src="https://github.com/user-attachments/assets/ffe9e235-9f3c-42ce-9cf2-162665f1b475" />
+
 <img width="329" height="631" alt="Image" src="https://github.com/user-attachments/assets/0353d4d4-a2d6-4d92-8d2b-7ff3e6badec9" />
 
 - **듀얼 게이지(Dual-Gauge) 비교**:
@@ -63,7 +64,7 @@
 
 ### 4. 아카이브
 
-<img width="334" height="633" alt="Image" src="https://github.com/user-attachments/assets/ffe9e235-9f3c-42ce-9cf2-162665f1b475" />
+<img width="337" height="633" alt="Image" src="https://github.com/user-attachments/assets/ccc28478-f9ca-417d-9ea4-a5053a75e791" />
 
 - **[내가해냄] 버튼**:
   - 일정 완료 시 일정 소화 스타일(`계획대로` / `빠듯했지만` / `극적으로`)을 선택하여 아카이빙.
